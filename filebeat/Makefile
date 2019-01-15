@@ -61,6 +61,6 @@ create-fields:
 	@go run ${ES_BEATS}/filebeat/scripts/generator/fields/main.go --beats_path=$(BEAT_GOPATH)/src/$(BEAT_PATH) --module=$(MODULE) --fileset=$(FILESET)
 
 docker:
-	@docker run --rm --name golang -v $(shell dirname $(shell pwd)):/go/src/github.com/elastic/beats/ golang:1.11.4-alpine3.8 /bin/sh -c "cd /go/src/github.com/elastic/beats/filebeat && apk add --update build-base && go build --ldflags -w -o filebeat"
+	@docker run --rm --name golang -v $(shell dirname $(shell pwd)):/go/src/github.com/elastic/beats/ golang:1.11.4-alpine3.8 /bin/sh -c "cd /go/src/github.com/elastic/beats/filebeat && go build --ldflags -w -o filebeat"
 image: docker
 	   docker build -t iyacontrol/filebeat:$(TAG) -f Dockerfile.dev .

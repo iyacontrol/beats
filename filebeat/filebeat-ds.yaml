@@ -19,10 +19,7 @@ spec:
       containers:
       - name: filebeat
         image: iyacontrol/filebeat:6.5.4
-        args: [
-          "-c", "/etc/filebeat.yml",
-          "-e",
-        ]
+        imagePullPolicy: Always
         env:
         # - name: ELASTICSEARCH_HOST
         #   value: elasticsearch
@@ -78,7 +75,7 @@ spec:
           path: /var/lib/filebeat-data
           type: DirectoryOrCreate
       - name: appdata
-        hostpath:
+        hostPath:
           path: /data/logs
 ---
 apiVersion: rbac.authorization.k8s.io/v1
