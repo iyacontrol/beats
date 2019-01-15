@@ -15,6 +15,10 @@ spec:
         k8s-app: filebeat
     spec:
       serviceAccountName: filebeat
+      tolerations:
+      - key: node-role.kubernetes.io/master
+        operator: Exists
+        effect: NoSchedule
       terminationGracePeriodSeconds: 30
       containers:
       - name: filebeat
@@ -29,6 +33,14 @@ spec:
         #   value: elastic
         # - name: ELASTICSEARCH_PASSWORD
         #   value: changeme
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
         - name: NODE_NAME
           valueFrom:
             fieldRef:
@@ -53,8 +65,7 @@ spec:
         - name: data
           mountPath: /usr/share/filebeat/data
         - name: varlibdockercontainers
-          mountPath: /var/lib/docker/containers
-          readOnly: true
+          mountPath: /data/docker/containers
         - name: appdata
           mountPath: /data/logs
           readOnly: true
@@ -68,7 +79,7 @@ spec:
           path: /var/log/filebeat
       - name: varlibdockercontainers
         hostPath:
-          path: /var/lib/docker/containers
+          path: /data/docker/containers
       # data folder stores a registry of read status for all files, so we don't send everything again on a Filebeat pod restart
       - name: data
         hostPath:

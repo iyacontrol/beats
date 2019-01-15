@@ -76,6 +76,9 @@ const containerIdLen = 64
 // Pod UID is on the 5th index of the path directories
 const podUIDPos = 5
 
+// Container UID is on the 4th index of the path directories
+const containerIDPos = 4
+
 func (f *LogPathMatcher) MetadataIndex(event common.MapStr) string {
 	if value, ok := event["source"]; ok {
 		source := value.(string)
@@ -118,6 +121,20 @@ func (f *LogPathMatcher) MetadataIndex(event common.MapStr) string {
 				logp.Debug("kubernetes", "Error extracting pod uid - source value contains matcher's logs_path, however it is too short to contain a Pod UID.")
 			}
 
+		} else if f.ResourceType == "scontainer" {
+			// Specify a hostpath resource type when manually mounting log volumes and they end up under "/data/logs/"
+			// This will extract only the pod UID, which offers less granularity of metadata when compared to the container ID
+			if strings.HasPrefix(f.LogsPath, "/data/docker/containers/") && strings.HasSuffix(source, ".log") {
+				pathDirs := strings.Split(source, "/")
+				if len(pathDirs) > containerIDPos {
+					containerID := strings.Split(source, "/")[containerIDPos]
+
+					logp.Debug("kubernetes", "Using container id: %s", containerID)
+					return containerID
+				}
+
+				logp.Debug("kubernetes", "Error extracting pod uid - source value contains matcher's logs_path, however it is too short to contain a Pod UID.")
+			}
 		} else {
 			// In case of the Kubernetes log path "/var/log/containers/",
 			// the container ID will be located right before the ".log" extension.
