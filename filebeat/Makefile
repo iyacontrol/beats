@@ -5,6 +5,7 @@ TEST_ENVIRONMENT?=true
 GOX_FLAGS=-arch="amd64 386 arm ppc64 ppc64le"
 ES_BEATS?=..
 FIELDS_FILE_PATH=module
+TAG=6.5.4
 
 include ${ES_BEATS}/libbeat/scripts/Makefile
 
@@ -58,3 +59,8 @@ create-fileset:
 .PHONY: create-fields
 create-fields:
 	@go run ${ES_BEATS}/filebeat/scripts/generator/fields/main.go --beats_path=$(BEAT_GOPATH)/src/$(BEAT_PATH) --module=$(MODULE) --fileset=$(FILESET)
+
+docker:
+	@docker run --rm --name golang -v $(shell dirname $(shell pwd)):/go/src/github.com/elastic/beats/ golang:1.11.4-alpine3.8 /bin/sh -c "cd /go/src/github.com/elastic/beats/filebeat && apk add --update build-base && go build --ldflags -w -o filebeat"
+image: docker
+	   docker build -t iyacontrol/filebeat:$(TAG) -f Dockerfile.dev .

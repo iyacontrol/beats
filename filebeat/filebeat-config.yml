@@ -1,0 +1,142 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: filebeat-config
+  namespace: log
+  labels:
+    k8s-app: filebeat
+data:
+  filebeat.yml: |-
+    filebeat.registry_file: ${path.data}/registry
+    filebeat.registry_file_permissions: 0600
+    filebeat.shutdown_timeout: 10s
+
+    filebeat.inputs:
+    - type: log
+      enabled: true
+      tags: ["kubelog"]
+      paths:
+        - /var/log/containers/*.log
+      encoding: utf-8
+      ignore_older: 360h     # ignores any files not be modified after 15 days
+      scan_frequency: 10s    # filebeat checks for new files every 10s
+      harvester_buffer_size: 16384 # harvester buffer 16M
+      max_bytes: 10485760    # single log message bigger than 10M is discarded
+      tail_files: false      # starts reading new files from beginning. true means reading from end.
+      symlinks: false        # do not harvest symlinks 
+      harvester_limit: 0     # the number of harvesters parallelly for one input. 0 means no limit
+      close_inactive: 10m    # closes the file handle if not been harvested for the specified duration
+      close_renamed: true    # closes the file handler when a file is renamed
+      close_removed: true    # closes the harvester when a file is removed
+      close_eof: false       # closes a file as soon as the end of a file is reached. false means disable.
+      clean_inactive: 480h   # removes the state of a file after 20 days
+      clean_removed: true    # cleans the deleted files from the registry
+      processors:
+        - add_kubernetes_metadata:
+            in_cluster: true
+            host: ${NODE_NAME}
+            namespace: ${POD_NAMESPACE}
+            default_indexers.enabled: false
+            default_matchers.enabled: false
+            include_pod_uid: true
+            indexers:
+              - container:
+            matchers:
+              - logs_path:
+                  logs_path: /var/log/containers/
+                  resource_type: container
+    
+    - type: log
+      enabled: true
+      tags: ["applog"]
+      paths:
+        - /data/logs/*/*/*/*/*.log
+      encoding: utf-8
+      ignore_older: 168h     # ignores any files not be modified after 7 days
+      scan_frequency: 10s    # filebeat checks for new files every 10s
+      harvester_buffer_size: 16384 # harvester buffer 16M
+      max_bytes: 10485760    # single log message bigger than 10M are discarded
+      tail_files: false      # starts reading new files from beginning. true means reading from end.
+      symlinks: false        # do not harvest symlinks 
+      harvester_limit: 0     # the number of harvesters parallelly for one input. 0 means no limit
+      close_inactive: 20m    # closes the file handle if not been harvested for the specified duration
+      close_renamed: true    # closes the file handler when a file is renamed
+      close_removed: true    # closes the harvester when a file is removed
+      close_eof: false       # closes a file as soon as the end of a file is reached. false means disable.
+      clean_inactive: 480h   # removes the state of a file after 20 days
+      clean_removed: true    # cleans the deleted files from the registry 
+      exclude_files: ['.gz$']
+      multiline:
+        pattern: '^[[:space:]]+(at|\.{3})|^Caused by:'
+        negate: false
+        match: after
+        timeout: 5s
+        max_lines: 100
+      processors:
+        - add_kubernetes_metadata:
+            in_cluster: true
+            host: ${NODE_NAME}
+            namespace: ${POD_NAMESPACE}
+            default_indexers.enabled: false
+            default_matchers.enabled: false
+            include_pod_uid: true
+            indexers:
+              - pod_uid:
+            matchers:
+              - logs_path:
+                  logs_path: /data/logs/
+                  resource_type: hostpath
+
+        - dissect:
+            tokenizer: "/data/logs/*/*/*/%{appname}/%{filename}.log"
+            field: "source"
+            target_prefix: ""
+
+    # Optional fields that you can specify to add additional information to the output.
+    fields:
+      env: prod
+
+    processors:
+      - drop_fields:
+          fields: ["beat", "input", "prospector", "offset"]
+
+    output.kafka:
+      enabled: true
+      hosts: ["jialingjiang.jdq.jd.local:9292"]
+      topics:
+        - topic: kafka-k8s-kube-logs
+          when:
+            contains:
+              tags: 'kubelog'
+        - topic: kafka-k8s-app-logs
+          when:
+            contains:
+              tags: 'applog'
+      partition.round_robin:
+        reachable_only: false
+      version: '0.10.1'
+      codec.json:
+        pretty: false
+        escape_html: true
+      worker: 35
+      max_retries: 3
+      bulk_max_size: 4096
+      broker_timeout: 10s
+      channel_buffer_size: 256
+      keep_alive: 0
+      compression: snappy
+      max_message_bytes: 1000000
+      required_acks: 1
+
+    logging.to_syslog: false
+    logging.to_files: true
+    logging.level: error
+    logging.selectors: ["*"]
+    logging.files:
+      path: ${path.logs}
+      name: filebeat
+      rotateeverybytes: 104857600 # = 100MB
+      keepfiles: 7
+      permissions: 0600
+      logging.json: false
