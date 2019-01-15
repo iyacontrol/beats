@@ -1,6 +1,5 @@
 FROM alpine:3.8
 
-COPY fields.yml /fields.yml
 COPY run.sh /run.sh
 COPY filebeat /filebeat
 COPY module /module

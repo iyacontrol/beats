@@ -89,7 +89,7 @@ data:
                   resource_type: hostpath
 
         - dissect:
-            tokenizer: "/data/logs/*/*/*/%{appname}/%{filename}.log"
+            tokenizer: "/data/logs/%{?ns}/%{?pnm}/%{?puid}/%{appname}/%{filename}.log"
             field: "source"
             target_prefix: ""
 
