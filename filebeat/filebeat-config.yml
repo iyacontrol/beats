@@ -35,11 +35,11 @@ data:
       processors:
         - add_kubernetes_metadata:
             in_cluster: true
-            host: ${POD_NAME}
+            host: ${NODE_NAME}
             namespace: ${POD_NAMESPACE}
             default_indexers.enabled: false
             default_matchers.enabled: false
-            include_pod_uid: true
+            # include_pod_uid: true
             indexers:
               - container:
             matchers:
@@ -76,11 +76,11 @@ data:
       processors:
         - add_kubernetes_metadata:
             in_cluster: true
-            host: ${POD_NAME}
+            host: ${NODE_NAME}
             namespace: ${POD_NAMESPACE}
             default_indexers.enabled: false
             default_matchers.enabled: false
-            include_pod_uid: true
+            # include_pod_uid: true
             indexers:
               - pod_uid:
             matchers:
@@ -145,7 +145,7 @@ data:
 
     logging.to_syslog: false
     logging.to_files: true
-    logging.level: debug
+    logging.level: error
     logging.selectors: ["*"]
     logging.files:
       path: ${path.logs}
