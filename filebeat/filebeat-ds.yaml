@@ -23,7 +23,7 @@ spec:
       containers:
       - name: filebeat
         image: iyacontrol/filebeat:6.5.4
-        imagePullPolicy: Always
+        # imagePullPolicy: Always
         env:
         # - name: ELASTICSEARCH_HOST
         #   value: elasticsearch
